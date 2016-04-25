@@ -27,8 +27,8 @@ Once the directory is prepared, invoke the dir2fat32 script::
     $ ./dir2fat32.sh test.img 200 test
     ==============================================
     Output file:      test.img
-    Partition size:   400 MiB
-    Image size:       408 MiB
+    Partition size:   200 MiB
+    Image size:       208 MiB
     Sector size:      512 B
     Source dir:       test
     ==============================================
