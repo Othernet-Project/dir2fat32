@@ -42,7 +42,7 @@ WRITE=w
 VALID_SECSIZES=( 512 1024 2048 4096 8912 16384 32768 )
 
 usage() {
-  echo "Usage: $(basename $0) [-h -S SECSIZE] OUTPUT SIZE SOURCE"
+  echo "Usage: $(basename $0) [-h -f -S SECSIZE] OUTPUT SIZE SOURCE"
   echo
   echo "Arguments:"
   echo "  OUTPUT      name of the image file"
@@ -51,6 +51,7 @@ usage() {
   echo
   echo "Options:"
   echo "  -S SECSIZE  logical sector size (default: 512)"
+  echo "  -f          overwrite existing image file (if any)"
   echo "  -h          show this message and exit"
   echo
   echo "Valid values for SECSIZE are: 512, 1024, 2048, 4096, 8912, 16384, and "
@@ -137,11 +138,14 @@ insertpart() {
 }
 
 # Parse options
-while getopts "hS:" opt; do
+while getopts "hfS:" opt; do
   case "$opt" in
     h)
       usage
       exit 0
+      ;;
+    f)
+      FORCE=1
       ;;
     S)
       LOGICAL_SECTOR_SIZE=$OPTARG
@@ -168,6 +172,8 @@ if [ -z "$OUTPUT" ] || [ -z "$SIZE" ] || [ -z "$SOURCE" ]; then
   usage
   exit 0
 fi
+
+[ $FORCE ] && (rm -f $OUTPUT 2>/dev/null || true)
 
 if [ -e "$OUTPUT" ]; then
   echo "ERROR: $OUTPUT already exists. Aborting."
