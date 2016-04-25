@@ -39,6 +39,7 @@ OFFSET_8MB=16384
 SET_PARTITION_TYPE=t
 WIN95_FAT32=b
 WRITE=w
+VALID_SECSIZES=( 512 1024 2048 4096 8912 16384 32768 )
 
 usage() {
   echo "Usage: $(basename $0) [-h -S SECSIZE] OUTPUT SIZE SOURCE"
@@ -66,6 +67,16 @@ usage() {
   echo "This program is free software released under GNU GPLv3 license."
   echo "See <http://www.gnu.org/licenses/> for more information."
   echo
+}
+
+test_secsize() {
+  secsize=$1
+  for s in ${VALID_SECSIZES[@]}; do
+    if [ "$s" == $secsize ]; then
+      return 1
+    fi
+  done
+  return 0
 }
 
 relpath() {
@@ -145,6 +156,12 @@ done
 OUTPUT=${@:$OPTIND:1}
 SIZE=${@:$OPTIND+1:1}
 SOURCE=${@:$OPTIND+2:1}
+
+if test_secsize "$LOGICAL_SECTOR_SIZE"; then
+  echo "ERROR: Invalid logical sector size."
+  usage
+  exit 0
+fi
 
 if [ -z "$OUTPUT" ] || [ -z "$SIZE" ] || [ -z "$SOURCE" ]; then
   echo "ERROR: Missing required arguments, please see usage instructions"
