@@ -29,12 +29,8 @@ set -e
 
 VERSION=2.0a1
 
-OUTPUT=$1
-SIZE=$2
-SOURCE=$3
-PARTITION=${OUTPUT}.partition
-
 SECTOR_SIZE=512
+LOGICAL_SECTOR_SIZE=512
 NEW_DISKLABEL=o
 NEW_PARTITION=n
 PRIMARY=p
@@ -45,11 +41,16 @@ WIN95_FAT32=b
 WRITE=w
 
 usage() {
-  echo "Usage: $0 OUTPUT SIZE SOURCE"
+  echo "Usage: $(basename $0) [-h -S SECSIZE] OUTPUT SIZE SOURCE"
   echo
-  echo "  OUTPUT  - name of the image file"
-  echo "  SIZE    - size of the FAT32 partition in MiB (1024 based)"
-  echo "  SOURCE  - source directory"
+  echo "Arguments:"
+  echo "  OUTPUT      name of the image file"
+  echo "  SIZE        size of the FAT32 partition in MiB (1024 based)"
+  echo "  SOURCE      source directory"
+  echo
+  echo "Options:"
+  echo "  -S SECSIZE  logical sector size (default: 512)"
+  echo "  -h          show this message and exit"
   echo
   echo "NOTE: the image size is always 8 MiB larger than the partition size"
   echo "to account for the partition offset. The partition size itself should"
@@ -74,8 +75,13 @@ disksize() {
   echo $(expr 8 + $SIZE)
 }
 
+filesize() {
+  path=$1
+  echo $(expr $(stat -c%s "$path") / 1024 / 1024) MiB
+}
+
 mkcontainer() {
-  fallocate -l $(disksize)M "$OUTPUT"
+  fallocate -l ${DISK_SIZE}M "$OUTPUT"
   echo "$NEW_DISKLABEL
 $NEW_PARTITION
 $PRIMARY
@@ -90,7 +96,7 @@ $WRITE
 
 mkpartition() {
   fallocate -l ${SIZE}M "$PARTITION"
-  mkfs.fat -F32 "$PARTITION" >/dev/null
+  mkfs.fat -F32 -S"$LOGICAL_SECTOR_SIZE" "$PARTITION" >/dev/null
 }
 
 copyfiles() {
@@ -112,7 +118,29 @@ insertpart() {
     2>&1
 }
 
+# Parse options
+while getopts "hS:" opt; do
+  case "$opt" in
+    h)
+      usage
+      exit 0
+      ;;
+    S)
+      LOGICAL_SECTOR_SIZE=$OPTARG
+      ;;
+    *)
+      echo "Unrecognized option $opt"
+      exit
+  esac
+done
+
+# Parse remaining positional arguments
+OUTPUT=${@:$OPTIND:1}
+SIZE=${@:$OPTIND+1:1}
+SOURCE=${@:$OPTIND+2:1}
+
 if [ -z "$OUTPUT" ] || [ -z "$SIZE" ] || [ -z "$SOURCE" ]; then
+  echo "ERROR: Missing required arguments, please see usage instructions"
   usage
   exit 0
 fi
@@ -122,6 +150,16 @@ if [ -e "$OUTPUT" ]; then
   exit 1
 fi
 
+DISK_SIZE=$(disksize $SIZE)
+PARTITION=${OUTPUT}.partition
+
+echo "=============================================="
+echo "Output file:      $OUTPUT"
+echo "Partition size:   $SIZE MiB"
+echo "Image size:       $DISK_SIZE MiB"
+echo "Sector size:      $LOGICAL_SECTOR_SIZE B"
+echo "Source dir:       $SOURCE"
+echo "=============================================="
 echo "===> Creating container image"
 mkcontainer
 echo "===> Creating FAT32 partition image"
