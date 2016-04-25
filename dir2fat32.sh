@@ -27,6 +27,8 @@
 
 set -e
 
+VERSION=1.0
+
 OUTPUT=$1
 SIZE=$2
 SOURCE=$3
@@ -53,6 +55,7 @@ usage() {
   echo "to account for the partition offset. The partition size itself should"
   echo "ideally be a multiple of 8 MiB."
   echo
+  echo "dir2fat32 v$VERSION"
   echo "Copyright 2016 Outernet Inc"
   echo "Some rights reserved."
   echo
