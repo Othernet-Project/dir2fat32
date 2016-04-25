@@ -67,8 +67,12 @@ usage() {
 
 relpath() {
   full=$1
-  base=${SOURCE%%/}/
-  echo "${full##$base}"
+  if [ "$full" == "$SOURCE" ]; then
+    echo ""
+  else
+    base=${SOURCE%%/}/
+    echo "${full##$base}"
+  fi
 }
 
 disksize() {
@@ -100,7 +104,7 @@ mkpartition() {
 }
 
 copyfiles() {
-  find $SOURCE -type d | while read dir; do
+  find "$SOURCE" -type d | while read dir; do
     target=$(relpath $dir)
     [ -z "$target" ] && continue
     echo "  Creating $target"
