@@ -41,7 +41,7 @@ WIN95_FAT32=b
 WRITE=w
 
 usage() {
-  echo "Usage: $(basename $0) [-h -S SECSIZE] OUTPUT SIZE SOURCE"
+  echo "Usage: $(basename $0) [-h -f -S SECSIZE] OUTPUT SIZE SOURCE"
   echo
   echo "Arguments:"
   echo "  OUTPUT      name of the image file"
@@ -150,13 +150,14 @@ OUTPUT=${@:$OPTIND:1}
 SIZE=${@:$OPTIND+1:1}
 SOURCE=${@:$OPTIND+2:1}
 
-[ $FORCE ] && (rm -f $OUTPUT 2>/dev/null || true)
 
 if [ -z "$OUTPUT" ] || [ -z "$SIZE" ] || [ -z "$SOURCE" ]; then
   echo "ERROR: Missing required arguments, please see usage instructions"
   usage
   exit 0
 fi
+
+[ $FORCE ] && (rm -f $OUTPUT 2>/dev/null || true)
 
 if [ -e "$OUTPUT" ]; then
   echo "ERROR: $OUTPUT already exists. Aborting."
