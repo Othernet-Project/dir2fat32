@@ -1,0 +1,132 @@
+#!/bin/bash
+
+# Create a FAT32 disk image from the contents of a directory.
+#
+# This tool requires the following to be available on the host system:
+#
+# - util-linux
+# - dosfstools
+# - mtools
+#
+# Copyright 2016 Outernet Inc
+# Some rights reserved.
+#
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program. If not, see <http://www.gnu.org/licenses/>
+#
+
+set -e
+
+OUTPUT=$1
+SIZE=$2
+SOURCE=$3
+PARTITION=${OUTPUT}.partition
+
+SECTOR_SIZE=512
+NEW_DISKLABEL=o
+NEW_PARTITION=n
+PRIMARY=p
+FIRST=1
+OFFSET_8MB=16384
+SET_PARTITION_TYPE=t
+WIN95_FAT32=b
+WRITE=w
+
+usage() {
+  echo "Usage: $0 OUTPUT SIZE SOURCE"
+  echo
+  echo "  OUTPUT  - name of the image file"
+  echo "  SIZE    - size of the FAT32 partition in MiB (1024 based)"
+  echo "  SOURCE  - source directory"
+  echo
+  echo "NOTE: the image size is always 8 MiB larger than the partition size"
+  echo "to account for the partition offset. The partition size itself should"
+  echo "ideally be a multiple of 8 MiB."
+  echo
+  echo "Copyright 2016 Outernet Inc"
+  echo "Some rights reserved."
+  echo
+  echo "This program is free software released under GNU GPLv3 license."
+  echo "See <http://www.gnu.org/licenses/> for more information."
+  echo
+}
+
+relpath() {
+  full=$1
+  base=${SOURCE%%/}/
+  echo "${full##$base}"
+}
+
+disksize() {
+  echo $(expr 8 + $SIZE)
+}
+
+mkcontainer() {
+  fallocate -l $(disksize)M "$OUTPUT"
+  echo "$NEW_DISKLABEL
+$NEW_PARTITION
+$PRIMARY
+$FIRST
+$OFFSET_8MB
+
+$SET_PARTITION_TYPE
+$WIN95_FAT32
+$WRITE
+" | fdisk "$OUTPUT" >/dev/null
+}
+
+mkpartition() {
+  fallocate -l $(disksize)M "$PARTITION"
+  mkfs.fat -F32 "$PARTITION" >/dev/null
+}
+
+copyfiles() {
+  find $SOURCE -type d | while read dir; do
+    target=$(relpath $dir)
+    [ -z "$target" ] && continue
+    echo "  Creating $target"
+    mmd -i "$PARTITION" "::$target"
+  done
+  find $SOURCE -type f | while read file; do
+    target=$(relpath $file)
+    echo "  Copying $target"
+    mcopy -i "$PARTITION" "$file" "::$target"
+  done
+}
+
+insertpart() {
+  dd if="$PARTITION" of="$OUTPUT" bs=$SECTOR_SIZE seek=$OFFSET_8MB >/dev/null \
+    2>&1
+}
+
+if [ -z "$OUTPUT" ] || [ -z "$SIZE" ] || [ -z "$SOURCE" ]; then
+  usage
+  exit 0
+fi
+
+if [ -e "$OUTPUT" ]; then
+  echo "ERROR: $OUTPUT already exists. Aborting."
+  exit 1
+fi
+
+echo "===> Creating container image"
+mkcontainer
+echo "===> Creating FAT32 partition image"
+mkpartition
+echo "===> Copying files"
+copyfiles
+echo "===> Copying partition into container"
+insertpart
+echo "===> Removing partition image file"
+rm -f "$PARTITION"
+echo "===> DONE"
