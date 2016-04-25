@@ -66,6 +66,21 @@ The disk image can be mounted for testing purposes using loopback devices. ::
     $ ls mnt
     ... contents of the test directory ...
 
+The logical sector size can be set using the ``-S`` option. The valid values
+are te same as for the ``-S`` option for ``mkfs.fat`` command, and those are:
+512, 1024, 2048, 4096, 8192, 16384, 32768. For flash-based media such as SD
+cards and USB sticks, this value should ideally match the page size for optimal
+performance. 
+
+Note that setting the logical sector size too high will **render a technically
+incorrect partition image** which has less clusters than a FAT32 patition
+should.  This can lead to mounting issues due to the FAT type being determined
+solely based on the number of clusters. A warning is shown if the number of
+clusters is low::
+
+    ===> Creating FAT32 partition image
+    WARNING: Not enough clusters for a 32 bit FAT!
+
 Why is my image larger than the specified size?
 -----------------------------------------------
 
