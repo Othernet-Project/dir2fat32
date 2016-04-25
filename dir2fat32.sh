@@ -52,6 +52,9 @@ usage() {
   echo "  -S SECSIZE  logical sector size (default: 512)"
   echo "  -h          show this message and exit"
   echo
+  echo "Valid values for SECSIZE are: 512, 1024, 2048, 4096, 8912, 16384, and "
+  echo "32768. Using values other than those will result in an error."
+  echo
   echo "NOTE: the image size is always 8 MiB larger than the partition size"
   echo "to account for the partition offset. The partition size itself should"
   echo "ideally be a multiple of 8 MiB."
