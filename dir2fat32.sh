@@ -27,14 +27,10 @@
 
 set -e
 
-VERSION=1.0
-
-OUTPUT=$1
-SIZE=$2
-SOURCE=$3
-PARTITION=${OUTPUT}.partition
+VERSION=2.0
 
 SECTOR_SIZE=512
+LOGICAL_SECTOR_SIZE=512
 NEW_DISKLABEL=o
 NEW_PARTITION=n
 PRIMARY=p
@@ -43,13 +39,23 @@ OFFSET_8MB=16384
 SET_PARTITION_TYPE=t
 WIN95_FAT32=b
 WRITE=w
+VALID_SECSIZES=( 512 1024 2048 4096 8912 16384 32768 )
 
 usage() {
-  echo "Usage: $0 OUTPUT SIZE SOURCE"
+  echo "Usage: $(basename $0) [-h -f -S SECSIZE] OUTPUT SIZE SOURCE"
   echo
-  echo "  OUTPUT  - name of the image file"
-  echo "  SIZE    - size of the FAT32 partition in MiB (1024 based)"
-  echo "  SOURCE  - source directory"
+  echo "Arguments:"
+  echo "  OUTPUT      name of the image file"
+  echo "  SIZE        size of the FAT32 partition in MiB (1024 based)"
+  echo "  SOURCE      source directory"
+  echo
+  echo "Options:"
+  echo "  -S SECSIZE  logical sector size (default: 512)"
+  echo "  -f          overwrite existing image file (if any)"
+  echo "  -h          show this message and exit"
+  echo
+  echo "Valid values for SECSIZE are: 512, 1024, 2048, 4096, 8912, 16384, and "
+  echo "32768. Using values other than those will result in an error."
   echo
   echo "NOTE: the image size is always 8 MiB larger than the partition size"
   echo "to account for the partition offset. The partition size itself should"
@@ -64,18 +70,37 @@ usage() {
   echo
 }
 
+test_secsize() {
+  secsize=$1
+  for s in ${VALID_SECSIZES[@]}; do
+    if [ "$s" == $secsize ]; then
+      return 1
+    fi
+  done
+  return 0
+}
+
 relpath() {
   full=$1
-  base=${SOURCE%%/}/
-  echo "${full##$base}"
+  if [ "$full" == "$SOURCE" ]; then
+    echo ""
+  else
+    base=${SOURCE%%/}/
+    echo "${full##$base}"
+  fi
 }
 
 disksize() {
   echo $(expr 8 + $SIZE)
 }
 
+filesize() {
+  path=$1
+  echo $(expr $(stat -c%s "$path") / 1024 / 1024) MiB
+}
+
 mkcontainer() {
-  fallocate -l $(disksize)M "$OUTPUT"
+  fallocate -l ${DISK_SIZE}M "$OUTPUT"
   echo "$NEW_DISKLABEL
 $NEW_PARTITION
 $PRIMARY
@@ -89,12 +114,12 @@ $WRITE
 }
 
 mkpartition() {
-  fallocate -l $(disksize)M "$PARTITION"
-  mkfs.fat -F32 "$PARTITION" >/dev/null
+  fallocate -l ${SIZE}M "$PARTITION"
+  mkfs.fat -F32 -S"$LOGICAL_SECTOR_SIZE" "$PARTITION" >/dev/null
 }
 
 copyfiles() {
-  find $SOURCE -type d | while read dir; do
+  find "$SOURCE" -type d | while read dir; do
     target=$(relpath $dir)
     [ -z "$target" ] && continue
     echo "  Creating $target"
@@ -112,16 +137,59 @@ insertpart() {
     2>&1
 }
 
-if [ -z "$OUTPUT" ] || [ -z "$SIZE" ] || [ -z "$SOURCE" ]; then
+# Parse options
+while getopts "hfS:" opt; do
+  case "$opt" in
+    h)
+      usage
+      exit 0
+      ;;
+    f)
+      FORCE=1
+      ;;
+    S)
+      LOGICAL_SECTOR_SIZE=$OPTARG
+      ;;
+    *)
+      echo "Unrecognized option $opt"
+      exit
+  esac
+done
+
+# Parse remaining positional arguments
+OUTPUT=${@:$OPTIND:1}
+SIZE=${@:$OPTIND+1:1}
+SOURCE=${@:$OPTIND+2:1}
+
+if test_secsize "$LOGICAL_SECTOR_SIZE"; then
+  echo "ERROR: Invalid logical sector size."
   usage
   exit 0
 fi
+
+if [ -z "$OUTPUT" ] || [ -z "$SIZE" ] || [ -z "$SOURCE" ]; then
+  echo "ERROR: Missing required arguments, please see usage instructions"
+  usage
+  exit 0
+fi
+
+[ $FORCE ] && (rm -f $OUTPUT 2>/dev/null || true)
 
 if [ -e "$OUTPUT" ]; then
   echo "ERROR: $OUTPUT already exists. Aborting."
   exit 1
 fi
 
+DISK_SIZE=$(disksize $SIZE)
+PARTITION=${OUTPUT}.partition
+
+echo "=============================================="
+echo "Output file:      $OUTPUT"
+echo "Partition size:   $SIZE MiB"
+echo "Image size:       $DISK_SIZE MiB"
+echo "Sector size:      $LOGICAL_SECTOR_SIZE B"
+echo "Source dir:       $SOURCE"
+echo "=============================================="
 echo "===> Creating container image"
 mkcontainer
 echo "===> Creating FAT32 partition image"
