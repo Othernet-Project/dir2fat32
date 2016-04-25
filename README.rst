@@ -29,8 +29,8 @@ Once the directory is prepared, invoke the dir2fat32 script::
     Output file:      test.img
     Partition size:   400 MiB
     Image size:       408 MiB
-    Sector size:      4096 B
-    Source dir:       test/
+    Sector size:      512 B
+    Source dir:       test
     ==============================================
     ===> Creating container image
     ===> Creating FAT32 partition image
