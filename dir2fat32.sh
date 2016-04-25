@@ -89,7 +89,7 @@ $WRITE
 }
 
 mkpartition() {
-  fallocate -l $(disksize)M "$PARTITION"
+  fallocate -l ${SIZE}M "$PARTITION"
   mkfs.fat -F32 "$PARTITION" >/dev/null
 }
 
