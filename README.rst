@@ -25,6 +25,19 @@ matter.
 Once the directory is prepared, invoke the dir2fat32 script::
 
     $ ./dir2fat32.sh test.img 200 test
+    ===> Creating container image
+    ===> Creating FAT32 partition image
+    ===> Copying files
+      Creating hardware
+      Copying bash_functions.sh
+      Copying aliases_example.txt
+      Copying colors.sh
+      Copying alias_manager.sh
+      Copying hardware/backlight.sh
+      Copying README.rst
+    ===> Copying partition into container
+    ===> Removing partition image file
+    ===> DONE
 
 The above example creates an image file called ``test.img`` that is 208 MiB in
 size and contains the contents of the ``test`` directory.
