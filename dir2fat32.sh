@@ -27,7 +27,7 @@
 
 set -e
 
-VERSION=1.0
+VERSION=2.0a1
 
 OUTPUT=$1
 SIZE=$2
