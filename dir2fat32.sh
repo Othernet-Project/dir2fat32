@@ -120,13 +120,13 @@ mkpartition() {
 
 copyfiles() {
   find "$SOURCE" -type d | while read dir; do
-    target=$(relpath $dir)
+    target=$(relpath "$dir")
     [ -z "$target" ] && continue
     echo "  Creating $target"
     mmd -i "$PARTITION" "::$target"
   done
   find $SOURCE -type f | while read file; do
-    target=$(relpath $file)
+    target=$(relpath "$file")
     echo "  Copying $target"
     mcopy -i "$PARTITION" "$file" "::$target"
   done
