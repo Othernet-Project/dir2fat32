@@ -8,7 +8,7 @@
 # - dosfstools
 # - mtools
 #
-# Copyright 2016 Outernet Inc
+# Copyright 2016 Othernet Inc
 # Some rights reserved.
 #
 # This program is free software: you can redistribute it and/or modify it under
@@ -62,7 +62,7 @@ usage() {
   echo "ideally be a multiple of 8 MiB."
   echo
   echo "dir2fat32 v$VERSION"
-  echo "Copyright 2016 Outernet Inc"
+  echo "Copyright 2016 Othernet Inc"
   echo "Some rights reserved."
   echo
   echo "This program is free software released under GNU GPLv3 license."
