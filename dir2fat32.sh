@@ -133,7 +133,7 @@ copyfiles() {
 }
 
 insertpart() {
-  dd if="$PARTITION" of="$OUTPUT" bs=$SECTOR_SIZE seek=$OFFSET_8MB >/dev/null \
+  dd conv=notrunc if="$PARTITION" of="$OUTPUT" bs=$SECTOR_SIZE seek=$OFFSET_8MB >/dev/null \
     2>&1
 }
 
